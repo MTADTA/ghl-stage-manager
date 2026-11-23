@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0b">
+<title>GHL Stage Control</title>
+<link rel="stylesheet" href="/static/brand.css">
+<style>
+  :root { --amber: var(--fret-yellow); }
+  .head { font-size: 34px; }
+  .now .who.head { font-size: 40px; }
+  body { padding: calc(12px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)); }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 30px; margin: 4px 0 2px; }
+  h2 { font-size: 13px; margin: 26px 0 8px; }
+  .card { background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 0; padding: 14px; }
+  .health { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+  .hp { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--line); font-size: 12px; letter-spacing: .04em; }
+  .hp i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .hp.ok i { background: var(--fret-green); box-shadow: 0 0 6px var(--fret-green); } .hp.warn i { background: var(--fret-yellow); }
+  .hp.bad { border-color: #fca5a5; color: #fca5a5; } .hp.bad i { background: var(--fret-red); } .hp.off { opacity: .55; }
+  .now .who { font-size: 30px; line-height: 1.1; }
+  .now .what { color: var(--muted); font-size: 17px; margin-bottom: 10px; }
+  .phase { display: inline-block; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: #333; margin-bottom: 6px; }
+  .phase.ready { background: var(--amber); color: #000; } .phase.playing { background: var(--fret-green); color: #000; }
+  .phase.finished { background: var(--fret-blue); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn { padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: #222; color: var(--bone); cursor: pointer; font-size: 16px; }
+  .btn.big { width: 100%; padding: 18px; font-size: 22px; font-weight: 700; letter-spacing: .04em; }
+  .btn.primary { background: linear-gradient(180deg, #ffd35c, var(--amber) 50%, #e57a00); color: #1a0b00; border: 0; font-weight: 700; }
+  .btn.go { background: var(--fret-green); color: #03140a; border: 0; font-weight: 700; }
+  .btn.danger { background: #3a0d0d; border-color: #7f1d1d; color: #fecaca; }
+  .btn.sm { padding: 6px 10px; font-size: 14px; }
+  .btn:disabled { opacity: .4; }
+  input, select { padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.07); color: var(--bone); font-size: 16px; min-width: 0; }
+  .score-in { width: 150px; font-variant-numeric: tabular-nums; }
+  ul.list { list-style: none; margin: 0; padding: 0; }
+  ul.list li { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  ul.list li .n { color: var(--amber); font-weight: 700; }
+  ul.list li .s { color: var(--muted); font-size: 14px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .note { background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.4); padding: 10px; border-radius: 10px; margin: 8px 0; font-size: 15px; }
+  .warn { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.4); }
+  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom)); background: #111; border: 1px solid var(--line); padding: 10px 16px; border-radius: 10px; max-width: 90vw; }
+  .qrbox { width: 160px; background: #fff; padding: 8px; border-radius: 8px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  details summary { cursor: pointer; color: var(--muted); margin-top: 26px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .toast:not([hidden]) { animation: toastIn .35s cubic-bezier(.2,.9,.3,1.2); }
+    .phase.playing { animation: live 1.6s ease-in-out infinite; }
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 16px); } }
+  @keyframes live { 50% { box-shadow: 0 0 0 4px rgba(43,217,107,.25); } }
+  .login { max-width: 320px; margin: 80px auto; text-align: center; }
+  /* tonight's Top 5 as a story image, for the band's socials at the end of the night */
+  .story { position: fixed; inset: 0; z-index: 20; background: rgba(5,5,6,.94); display: flex; flex-direction: column; align-items: center; gap: 12px;
+           padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); overflow: auto; }
+  .story[hidden] { display: none; }
+  .story img { width: min(100%, 360px); border: 1px solid var(--line); }
+  .story .row { justify-content: center; }
+</style>
+</head>
+<body><div class="fretbar" style="position:fixed;top:0;left:0;right:0"><i></i><i></i><i></i><i></i><i></i></div>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast" hidden></div>
+<div class="story" id="story" hidden></div>
+<script src="/static/vendor/qrcode.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => n == null ? "—" : Number(n).toLocaleString("en-US");
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+const hashPin = (location.hash.match(/pin=(\d+)/) || [])[1];
+if (hashPin) { store.set("ghl-pin", hashPin); history.replaceState(null, "", location.pathname); }
+let PIN = store.get("ghl-pin") || "", A = null, editing = false;
+
+function toast(msg) { $("toast").textContent = msg; $("toast").hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => $("toast").hidden = true, 3500); }
+
+// ---- tonight's Top 5, drawn on the phone as a 1080x1920 story (public names, as on the big screen)
+async function showStory() {
+  const box = $("story"); box.hidden = false; box.innerHTML = `<p class="muted">Drawing…</p>`;
+  const blob = await drawStory(A.leaderboard.slice(0, 5));
+  const url = URL.createObjectURL(blob), file = new File([blob], "guitar-hero-live-top5.png", { type: "image/png" });
+  const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+  box.innerHTML = `<img alt="Tonight's Top 5" src="${url}"><div class="row">
+    ${canShare ? `<button class="btn go" id="story-share">Share</button>` : ""}
+    <a class="btn" href="${url}" download="guitar-hero-live-top5.png" style="text-decoration:none">Save image</a>
+    <button class="btn" onclick="$('story').hidden=true">Close</button></div>`;
+  if (canShare) $("story-share").onclick = () => navigator.share({ files: [file], text: `Tonight's Top 5 at ${A.show}. Thanks to everyone who played with the band!` }).catch(() => {});
+}
+async function drawStory(top) {
+  try { await document.fonts.load('80px "Bebas Neue"'); await document.fonts.load('700 30px "Space Mono"'); await document.fonts.load('30px "Space Mono"'); } catch (e) {}
+  const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d"), FR = ["#2bd96b", "#ff3b3b", "#ffd60a", "#1a93fe", "#ff8a1f"];
+  x.fillStyle = "#0b0b0b"; x.fillRect(0, 0, W, H);
+  let g = x.createRadialGradient(W / 2, -160, 40, W / 2, -160, 1300); g.addColorStop(0, "rgba(244,239,230,.20)"); g.addColorStop(1, "rgba(244,239,230,0)");
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // the highway, faint, rushing toward you under the list
+  const vy = 1180, top0 = 110, bot = 600;
+  x.save(); x.globalAlpha = 0.55; x.beginPath(); x.moveTo(W / 2 - top0, vy); x.lineTo(W / 2 + top0, vy); x.lineTo(W / 2 + bot, H); x.lineTo(W / 2 - bot, H); x.closePath(); x.clip();
+  g = x.createLinearGradient(0, vy, 0, H); g.addColorStop(0, "#0b0b0b"); g.addColorStop(1, "#1c1c20"); x.fillStyle = g; x.fillRect(0, vy, W, H - vy);
+  x.strokeStyle = "rgba(244,239,230,.14)"; x.lineWidth = 2;
+  for (let i = 1; i < 5; i++) { const k = i / 5; x.beginPath(); x.moveTo(W / 2 - top0 + 2 * top0 * k, vy); x.lineTo(W / 2 - bot + 2 * bot * k, H); x.stroke(); }
+  for (let i = 0; i < 7; i++) { const yy = vy + (H - vy) * Math.pow(i / 7, 1.7); x.beginPath(); x.moveTo(0, yy); x.lineTo(W, yy); x.stroke(); }
+  x.restore();
+  FR.forEach((col, i) => { x.fillStyle = col; x.fillRect(i * W / 5, 0, W / 5 + 1, 14); });
+  // lockup: the Jordan Rein mark (recoloured bone), a rule, GUITAR HERO + LIVE
+  const logo = await new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = "/static/jr-logo.png"; });
+  const ly = 190;
+  if (logo) {
+    const lc = document.createElement("canvas"); lc.width = logo.width; lc.height = logo.height; const lx = lc.getContext("2d");
+    lx.drawImage(logo, 0, 0); const d = lx.getImageData(0, 0, lc.width, lc.height);
+    for (let i = 0; i < d.data.length; i += 4) { d.data[i] = 244; d.data[i + 1] = 239; d.data[i + 2] = 230; }
+    lx.putImageData(d, 0, 0); x.drawImage(lc, 150, ly, 290, 290 * logo.height / logo.width);
+  }
+  x.fillStyle = "rgba(244,239,230,.35)"; x.fillRect(490, ly + 8, 3, 170);
+  x.fillStyle = "#f4efe6"; x.font = '120px "Bebas Neue"'; x.textBaseline = "alphabetic"; x.textAlign = "left"; x.fillText("GUITAR HERO", 530, ly + 108);
+  x.save(); x.translate(530, ly + 128); x.rotate(-0.05); x.fillStyle = "#ee3a3a"; x.fillRect(0, 0, 150, 88); x.fillStyle = "#0b0b0b"; x.font = '96px "Bebas Neue"'; x.fillText("LIVE", 18, 80); x.restore();
+  // heading
+  x.textAlign = "center";
+  x.fillStyle = "#ffd60a"; x.font = '700 32px "Space Mono"'; x.fillText("PLAYED WITH THE BAND", W / 2, 560);
+  x.fillStyle = "#f4efe6"; x.font = '200px "Bebas Neue"'; x.shadowColor = "rgba(0,0,0,.6)"; x.shadowBlur = 24;
+  x.fillText(top.length === 1 ? "TONIGHT'S #1" : `TONIGHT'S TOP ${top.length}`, W / 2, 740); x.shadowBlur = 0;
+  // the list
+  const fit = (text, font, size, max) => { let s = size; x.font = `${s}px ${font}`; while (x.measureText(text).width > max && s > 30) { s -= 4; x.font = `${s}px ${font}`; } return s; };
+  top.forEach((e, i) => {
+    const y = 820 + i * 150, first = i === 0;
+    x.fillStyle = first ? "rgba(255,214,10,.10)" : "rgba(11,11,11,.85)"; x.fillRect(80, y, W - 160, 132);
+    if (first) { x.fillStyle = "#ffd60a"; x.fillRect(80, y, 8, 132); }
+    x.textAlign = "center"; x.fillStyle = first ? "#ffd60a" : "#9a958d"; x.font = '96px "Bebas Neue"'; x.fillText(String(i + 1), 160, y + 100);
+    x.textAlign = "right"; x.fillStyle = "#f4efe6"; x.font = '84px "Bebas Neue"'; const score = Number(e.score).toLocaleString("en-US");
+    x.fillText(score, W - 110, y + 82); const sw = x.measureText(score).width;
+    const n = Math.max(0, Math.min(7, e.stars || 0));
+    for (let k = 0; k < n; k++) { const sx = W - 122 - k * 30, sy = y + 108; x.beginPath(); for (let q = 0; q < 10; q++) { const r = q % 2 ? 5 : 12, a = -Math.PI / 2 + q * Math.PI / 5; x.lineTo(sx + r * Math.cos(a), sy + r * Math.sin(a)); } x.closePath(); x.fillStyle = "#ffc21a"; x.fill(); }
+    x.textAlign = "left"; x.fillStyle = "#f4efe6"; const room = W - 110 - sw - 40 - 230;
+    fit(e.name.toUpperCase(), '"Bebas Neue"', 72, room); x.fillText(e.name.toUpperCase(), 230, y + 72);
+    x.fillStyle = "#9a958d"; fit(e.song, '"Space Mono"', 26, room); x.fillText(e.song, 232, y + 112);
+  });
+  // footer: how many played, the handle, the show and date
+  x.textAlign = "center";
+  const played = A.played || top.length;
+  x.fillStyle = "#f4efe6"; x.font = '700 34px "Space Mono"'; x.fillText(`${played} ${played === 1 ? "PLAYER" : "PLAYERS"} ROCKED WITH THE BAND`, W / 2, 820 + Math.max(top.length, 1) * 150 + 56);
+  // (kept above the bottom ~120 px, where a story's reply bar sits)
+  x.fillStyle = "rgba(11,11,11,.8)"; x.fillRect(0, 1684, W, 140);
+  x.fillStyle = "#f4efe6"; x.font = '700 36px "Space Mono"'; x.fillText("@" + (A.links?.instagram || "jordanrein_"), W / 2, 1746);
+  x.fillStyle = "#9a958d"; x.font = '28px "Space Mono"';
+  x.fillText(`${A.show} · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`, W / 2, 1794);
+  return new Promise((ok) => c.toBlob(ok, "image/png"));
+}
+
+async function api(body) {
+  try {
+    const r = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json", "X-Pin": PIN }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (j.error) toast(j.error); else if (j.note) toast(j.note);
+    await refresh(true);
+    return j;
+  } catch (e) { toast("Can't reach the stage server."); }
+}
+
+function login(msg) {
+  $("app")._h = null;
+  $("app").innerHTML = `<div class="login"><h1 class="head">Stage Control</h1><p class="muted">${msg || "Enter your host PIN from the game’s startup setup screen."}</p>
+    <input id="pin" inputmode="numeric" placeholder="PIN" style="width:100%;text-align:center;font-size:24px">
+    <button class="btn primary big" style="margin-top:10px" id="pinb">Unlock</button></div>`;
+  $("pinb").onclick = () => { PIN = $("pin").value.trim(); store.set("ghl-pin", PIN); refresh(true); };
+}
+
+const LEVELS = ["easy", "medium", "hard", "expert"];
+const difficultyOptions = (levels, selected) => (levels?.length ? levels : LEVELS).map((d) => `<option value="${d}" ${d === selected ? "selected" : ""}>${d[0].toUpperCase() + d.slice(1)}</option>`).join("");
+function walkupDifficulty() {
+  const song = A.songs.find((s) => s.id === $("ws")?.value);
+  if ($("wd")) $("wd").innerHTML = difficultyOptions(song?.difficulties, "easy");
+}
+function nowCard() {
+  const c = A.state.current, q = A.state.queue;
+  if (!c) {
+    if (!q.length) return `<div class="card now"><div class="muted">Nobody in line yet. The screen shows "Scan to play".</div></div>`;
+    return `<div class="card now"><div class="muted">Next up</div><div class="who head">${esc(q[0].name)}</div><div class="what">${esc(q[0].song)} — ${esc(q[0].artist)}</div>
+      <button class="btn primary big" onclick="api({action:'call_next'})">Call ${esc(q[0].name)} up</button>
+      <button class="btn danger" style="margin-top:8px" data-name="${esc(q[0].name)}" onclick="if(confirm('Skip ' + this.dataset.name + '? Their song opens back up.'))api({action:'skip_next'})">Next player has left / skip</button>
+      <p class="muted">Or press <span class="gem g"></span> on the guitar while the stage screen is showing. <span class="gem r"></span> twice skips them.</p></div>`;
+  }
+  const r = c.result || {};
+  let body = "";
+  if (c.phase === "ready") body = `<div class="row" style="margin-bottom:12px"><label for="difficulty">Difficulty</label>
+      <select id="difficulty" data-id="${c.id}" onfocus="editing=true" onblur="editing=false" onchange="editing=false;api({action:'set_difficulty',id:this.dataset.id,difficulty:this.value})">${difficultyOptions(A.current?.difficulties, c.difficulty)}</select></div>
+      <p class="muted">Start screen is up. They press <span class="fret g"></span> to launch the song.</p>
+      <div class="row"><button class="btn go" onclick="api({action:'go'})">Start song now</button>
+      <button class="btn" onclick="api({action:'back_to_queue'})">Back to front of line</button>
+      <button class="btn danger" onclick="api({action:'skip'})">No-show / skip</button></div>`;
+  else if (c.phase === "playing" || c.phase === "finished") {
+    const pre = r.score != null ? r.score : "";
+    body = (c.phase === "finished"
+        ? (r.auto ? `<div class="note">Score captured automatically: <b>${fmt(r.score)}</b>. Saving and returning to the lobby in a few seconds…</div>`
+                  : `<div class="note warn">Song finished, but it didn't beat this song's saved best${r.best != null ? ` (${fmt(r.best)})` : ""}, so Clone Hero didn't store it. Type the score from the results screen.</div>`)
+        : `<p class="muted">Playing in Clone Hero. The score is grabbed automatically when the song ends.${A.autoload.enabled ? "" : ` <b>Load “${esc(c.song)}” in Clone Hero.</b>`}</p>`) +
+      `<div class="row"><input class="score-in" id="score" inputmode="numeric" placeholder="Score" value="${pre}" onfocus="editing=true" onblur="editing=false">
+        <button class="btn primary" onclick="api({action:'finish',score:$('score').value})">Save &amp; back to lobby</button></div>
+      <div class="row" style="margin-top:8px"><button class="btn sm" onclick="api({action:'show_game'})">Show Clone Hero</button>
+        <button class="btn sm danger" onclick="api({action:'skip'})">Abandon (no score)</button></div>`;
+  }
+  return `<div class="card now"><span class="phase ${c.phase}">${c.phase}</span>${c.lefty ? '<span class="phase">lefty</span>' : ''}<div class="who head">${esc(c.name)}</div>
+    <div class="what">${esc(c.song)} — ${esc(c.artist)}${c.ig ? ` · @${esc(c.ig)}` : ""}</div>${body}</div>`;
+}
+
+// Health at a glance: green = good, amber = works but check, red = fix before doors.
+function healthStrip() {
+  const h = A.health; if (!h || A.driver !== "mod") return "";
+  const pill = (state, label, title) => `<span class="hp ${state}" title="${esc(title)}"><i></i>${label}</span>`;
+  const g = h.guitar;
+  return `<div class="health">
+    ${h.oldCopy ? pill("bad", "OLD GAME COPY OPEN", "An old copy of the game is open (" + h.oldCopy + "). It is the laggy one: quit it and open the Guitar Hero Live app in the project folder.") : ""}
+    ${pill(h.game ? "ok" : "bad", "Game", h.game ? "Guitar Hero Live is connected" : "Open Guitar Hero Live")}
+    ${pill(g.count > 0 ? (g.joined ? "ok" : "warn") : g.count === 0 ? "bad" : "warn", g.count > 0 ? "Guitar" + (g.joined ? "" : " (not joined)") : g.count === 0 ? "No guitar" : "Guitar ?",
+           g.count > 0 ? (g.name || "guitar") + (g.joined ? ", joined" : ": press START on it to join") : g.count === 0 ? "No guitar connected: check USB / receiver / batteries" : "Waiting for the game")}
+    ${pill(h.link === "public" ? "ok" : h.link === "wifi" ? "warn" : "bad", h.link === "public" ? "Public link" : h.link === "wifi" ? "Wi-Fi only" : "No link",
+           h.link === "public" ? "Phones on cellular can sign up" : "Phones must be on the same Wi-Fi")}
+    ${pill(h.art ? "ok" : "warn", "In-song art", h.art ? "QR, score to beat and up next are current" : "Updating the in-song picture")}
+    ${pill(h.lights === "ok" ? "ok" : h.lights === "off" ? "off" : "warn", "Lights", h.lights === "off" ? "Game lighting is off" : "Lights: " + h.lights)}
+  </div>`;
+}
+
+function render() {
+  if (editing) return;
+  const s = A.state, q = s.queue, url = A.tunnelUrl || A.lanUrl;
+  const roomLevel = A.lights?.maestro ? (A.lights.room || "show") : "off";
+  const free = A.songs.filter((x) => !x.taken);
+  // Re-render only on change, and keep any open <details> open.
+  const open = [...document.querySelectorAll("details")].map((d) => d.open);
+  const html = `
+    <div class="row" style="justify-content:space-between"><h1 class="head">Stage Control</h1>
+      <span class="muted">${A.gameRunning ? "Clone Hero running" : "<b style='color:#fca5a5'>Clone Hero not running</b>"}</span></div>
+    ${healthStrip()}
+    <h2 class="eyebrow">On stage</h2>${nowCard()}
+
+    <h2 class="eyebrow">Line (${q.length})</h2>
+    <div class="card">${q.length ? `<ul class="list">${q.map((e, i) => `<li><span class="n">${i + 1}</span>
+      <span>${esc(e.name)}${e.ig ? ` <span class="s">@${esc(e.ig)}</span>` : ""}<br><span class="s">${esc(e.song)} — ${esc(e.artist)}</span></span>
+      <span class="row"><button class="btn sm" onclick="api({action:'move',id:'${e.id}',dir:'up'})" ${i ? "" : "disabled"}>↑</button>
+      <button class="btn sm" onclick="api({action:'move',id:'${e.id}',dir:'down'})" ${i < q.length - 1 ? "" : "disabled"}>↓</button>
+      <button class="btn sm danger" data-name="${esc(e.name)}" onclick="if(confirm('Remove ' + this.dataset.name + ' from the line? Their song opens back up.'))api({action:'remove',id:'${e.id}'})">✕</button></span></li>`).join("")}</ul>`
+      : `<div class="muted">Empty.</div>`}
+      <details style="margin-top:8px"><summary>Add a walk-up</summary>
+        <div class="row" style="margin-top:8px"><input id="wn" placeholder="Name" maxlength="24" onfocus="editing=true" onblur="editing=false">
+        <select id="ws" onchange="walkupDifficulty()" onfocus="editing=true" onblur="editing=false">${free.map((x) => `<option value="${x.id}">${esc(x.name)} — ${esc(x.artist)}</option>`).join("")}</select>
+        <select id="wd" aria-label="Difficulty" onfocus="editing=true" onblur="editing=false">${difficultyOptions(free[0]?.difficulties, "easy")}</select>
+        <button class="btn" onclick="api({action:'add',name:$('wn').value,songId:$('ws').value,difficulty:$('wd').value})">Add</button></div></details>
+    </div>
+
+    <h2 class="eyebrow">Scoreboard (${s.done.length} played)</h2>
+    <div class="card">${s.done.length ? `<ul class="list">${[...s.done].sort((a, b) => (b.score ?? -1) - (a.score ?? -1)).map((e, i) => `<li><span class="n">${e.score == null ? "?" : i + 1}</span>
+      <span>${esc(e.name)} <span class="s">· ${esc(e.song)}</span><br><span class="s">${e.score == null ? "<b style='color:#fca5a5'>needs score</b>" : fmt(e.score) + (e.scoreSource === "auto" ? " (auto)" : "")}</span></span>
+      <span class="row"><button class="btn sm" data-name="${esc(e.name)}" onclick="const v=prompt('Score for ' + this.dataset.name, '${e.score ?? ""}'); if(v!==null) api({action:'set_score',id:'${e.id}',score:v})">Edit</button></span></li>`).join("")}</ul>`
+      : `<div class="muted">No one has played yet.</div>`}
+      ${A.leaderboard.length ? `<div class="row" style="margin-top:12px"><button class="btn" onclick="showStory()">Tonight's Top ${Math.min(5, A.leaderboard.length)} as a story image</button><span class="muted">for the band's socials</span></div>` : ""}</div>
+
+    ${A.encore ? `<h2 class="eyebrow">Encore</h2>
+    <div class="card">${q.some((e) => e.encore) || (A.current && A.current.encore)
+      ? `<div class="muted">The encore is lined up: press green on the guitar to call them up.</div>`
+      : A.leaderboard.length
+      ? `<div class="muted" style="margin-bottom:10px">Tonight's top scorer: <b>${esc(A.leaderboard[0].name)}</b> (${fmt(A.leaderboard[0].score)}). They go to the front of the line with ${esc(A.encoreSong.song)}.</div>
+        <button class="btn primary big" data-name="${esc(A.leaderboard[0].name)}" data-song="${esc(A.encoreSong.song)}" onclick="if(confirm('Line up ' + this.dataset.name + ' to play ' + this.dataset.song + ' as the encore?'))api({action:'encore'})">Encore: ${esc(A.leaderboard[0].name)} plays ${esc(A.encoreSong.song)}</button>`
+      : `<div class="muted">Tonight's top scorer plays ${esc(A.encoreSong.song)} as the encore. No scores yet.</div>`}</div>` : ""}
+
+    <h2 class="eyebrow">Screen &amp; sign-ups</h2>
+    <div class="card">
+      ${A.driver === "mod" ? `<p class="muted" style="margin-top:0">In-game: ${A.mod.connected ? "<b style='color:var(--fret-green)'>connected</b>" : "<b style='color:#fca5a5'>not connected (open Guitar Hero Live)</b>"}
+        · guitar ${A.mod.joined === "1" ? "<b style='color:var(--fret-green)'>joined</b>" : "<b style='color:#fca5a5'>not joined: Quickplay → press green to join</b>"}
+        ${A.mod.scene ? " · " + esc(A.mod.scene) : ""}</p>
+        <button class="btn ${A.mod.paused ? "go" : ""}" style="margin-bottom:10px" onclick="api({action:'toggle_overlay'})">${A.mod.paused ? "Show in-game overlay" : "Hide in-game overlay (setup)"}</button>` : ""}
+      <div class="grid2"><button class="btn" onclick="api({action:'show_display'})">Show lobby screen</button>
+        <button class="btn" onclick="api({action:'show_game'})">Show Clone Hero</button></div>
+      <div class="row" style="margin-top:10px"><button class="btn ${A.stageFx ? "go" : ""}" onclick="api({action:'toggle_stage_fx'})">Stage lights: ${A.stageFx ? "ON" : "OFF"}</button><span class="muted">Beat-synced light beams in songs · applies next song</span></div>
+      <div class="row" style="margin-top:10px"><button class="btn ${A.resultsCard ? "go" : ""}" onclick="api({action:'toggle_results_card'})">Results card: ${A.resultsCard ? "ON" : "OFF"}</button><span class="muted">Branded score screen after each song (off: the game's own)</span></div>
+      <div class="row" style="margin-top:10px"><button class="btn ${A.leftySignup ? "go" : ""}" onclick="api({action:'toggle_lefty_signup'})">Lefty option: ${A.leftySignup ? "ON" : "OFF"}</button><span class="muted">"I play left-handed" on the sign-up page (flips the game for their song)</span></div>
+      <div class="row" style="margin-top:10px"><button class="btn ${A.speakers ? "go" : ""}" onclick="api({action:'toggle_speakers'})">Moving speakers: ${A.speakers ? "ON" : "OFF"}</button><span class="muted">Cones move with the song (needs stage lights) · applies next song</span></div>
+      <div class="row" style="margin-top:10px"><button class="btn ${A.lights?.guitar ? "go" : ""}" onclick="api({action:'toggle_guitar_lights'})">Guitar lights: ${A.lights?.guitar ? "ON" : "OFF"}</button>
+        <span class="muted">asleep on the stand · awake at call-up · the game's state in the song · a victory lap for 5★ or #1</span></div>
+      <div class="row" style="margin-top:10px"><span class="muted">Room hits (MaestroDMX):</span>
+        ${[["off", "Off"], ["subtle", "Subtle"], ["show", "Show"], ["big", "Big night"]].map(([l, t]) => `<button class="btn sm ${roomLevel === l ? "go" : ""}" onclick="api({action:'set_room',level:'${l}'})">${t}</button>`).join("")}</div>
+      <p class="muted" style="margin:6px 0 0"><b>Subtle:</b> called up, Star Power, the final beat, a new #1. <b>Show:</b> + the first note, every 100th note of a streak, solos, the last 3 beats, five stars. <b>Big night:</b> all of it, closer together, streaks of 50. Blinder hits only; the strobe is kept for a new #1.</p>
+      <div class="row" style="margin-top:8px"><button class="btn sm ${A.lights?.sp_look === "effect" ? "go" : ""}" onclick="api({action:'toggle_sp_look'})">Star Power: ${A.lights?.sp_look === "effect" ? "Maestro's Effect, held" : "Blinder hit"}</button>
+        <button class="btn sm ${A.lights?.strobe ? "go" : ""}" onclick="api({action:'toggle_strobe'})">Strobe for a new #1: ${A.lights?.strobe ? "ON" : "OFF"}</button>
+        <button class="btn sm" onclick="api({action:'rehearse_lights'})">Rehearse the lights (30 s)</button></div>
+      ${A.lightsNote ? `<p class="note" style="margin-top:8px">${esc(A.lightsNote)}</p>` : `<p class="muted" style="margin:6px 0 0">Rehearse with the band's show running: it plays every moment at the level above, guitar included.</p>`}
+      <div class="row" style="margin-top:10px"><button class="btn ${s.signups_open ? "danger" : "go"}" onclick="api({action:'toggle_signups'})">${s.signups_open ? "Close sign-ups" : "Open sign-ups"}</button>
+        <span class="muted">${free.length} of ${A.songs.length} songs still open</span></div>
+      <p class="muted" style="word-break:break-all">Sign-up link: ${url ? `<a href="${esc(url)}" style="color:var(--amber)">${esc(url)}</a>` : "starting…"}${A.tunnelUrl ? "" : "<br><b>No public link. Phones must be on the same Wi-Fi.</b>"}</p>
+      ${url ? `<div class="qrbox">${qrFor(url)}</div>` : ""}
+    </div>
+
+    <details><summary>Pre-show / reset</summary>
+      <div class="card" style="margin-top:8px">
+        <p class="muted"><b>Fresh scores for tonight:</b> moves Clone Hero's saved high scores aside (kept in a backup) so every audience play is captured automatically. Quit Clone Hero first.</p>
+        <button class="btn" onclick="if(confirm('Move Clone Hero\\'s saved high scores aside for tonight?'))api({action:'fresh_scores'})">Fresh scores for tonight</button>
+        <p class="muted" style="margin-top:16px"><b>Reset night:</b> archives tonight's line and scoreboard and starts empty.</p>
+        <button class="btn danger" onclick="const v=prompt('Type RESET to clear the line and scoreboard'); if(v) api({action:'reset_night',confirm:v})">Reset night</button>
+      </div>
+    </details>`;
+  if ($("app")._h === html) return;
+  $("app").innerHTML = html; $("app")._h = html;
+  document.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
+}
+
+// The QR only changes with the link (making one tries 8 masks; it used to run on every 2 s poll).
+let qrUrl = null, qrSvg = "";
+function qrFor(u) {
+  if (u !== qrUrl) { const q = qrcode(0, "M"); q.addData(u); q.make(); qrSvg = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); qrUrl = u; }
+  return qrSvg;
+}
+
+// Never draw an answer older than the one on screen: a slow poll that landed after a button's own refresh used to put
+// the old state back for up to 2 s (inviting a second tap). (Not "only the newest sent": on a tunnel slower than the
+// 2 s poll that would throw every answer away.) One missed poll doesn't toast; two in a row do.
+let refreshSeq = 0, drawnSeq = 0, refreshFails = 0, forcePending = false;
+async function refresh(force) {
+  if (!PIN) { if (!$("pin")) login(); return; }
+  const my = ++refreshSeq;
+  if (force) forcePending = true;  // (kept if a newer poll overtakes this one)
+  try {
+    const r = await fetch("/api/admin", { headers: { "X-Pin": PIN }, cache: "no-store" });
+    if (r.status === 403) { PIN = ""; store.set("ghl-pin", ""); return login("Wrong PIN. Try again."); }
+    const j = await r.json();
+    if (my < drawnSeq) return;
+    drawnSeq = my; A = j; refreshFails = 0;
+    if (forcePending) { editing = false; forcePending = false; }
+    render();
+  } catch (e) { if (my > drawnSeq && ++refreshFails >= 2) toast("Can't reach the stage server."); }
+}
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

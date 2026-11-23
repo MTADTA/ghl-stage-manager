@@ -1,0 +1,70 @@
+/* Show look: stencil/spray-paint monochrome, with the five fret colors as the only color. */
+/* Fonts are bundled locally so screens render the same with no internet at the venue. */
+@font-face { font-family: "Bebas Neue"; font-weight: 400; font-display: swap; src: url("fonts/Bebas-Neue-400.woff2") format("woff2"); }
+@font-face { font-family: "Space Mono"; font-weight: 400; font-display: swap; src: url("fonts/Space-Mono-400.woff2") format("woff2"); }
+@font-face { font-family: "Space Mono"; font-weight: 700; font-display: swap; src: url("fonts/Space-Mono-700.woff2") format("woff2"); }
+
+:root {
+  --ink: #0b0b0b;
+  --ink-2: #141414;
+  --bone: #f4efe6;
+  --cream: #fdf4e0;
+  --muted: #9a958d;
+  --line: rgba(244, 239, 230, 0.16);
+  --star: #1a93fe;      /* star power = jordanreinmusic.com blue */
+  --hot: #ee3a3a;       /* jordanreinmusic.com red */
+  --fret-green: #2bd96b;
+  --fret-red: #ff3b3b;
+  --fret-yellow: #ffd60a;
+  --fret-blue: #1a93fe;
+  --fret-orange: #ff8a1f;
+  --head: "Bebas Neue", "Impact", "Haettenschweiler", "Arial Narrow Bold", sans-serif;
+  --mono: "Space Mono", ui-monospace, Menlo, Consolas, monospace;
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--ink); color: var(--bone); font-family: var(--mono); }
+button, input, select { font: inherit; }
+
+/* film grain over everything */
+.grain::after {
+  content: ""; position: fixed; inset: -50%; pointer-events: none; z-index: 50;
+  background-image: var(--grain); opacity: .09; mix-blend-mode: screen;
+  animation: grain 1s steps(4) infinite;
+}
+@keyframes grain { 25% { transform: translate(-3%, 2%); } 50% { transform: translate(2%, -3%); } 75% { transform: translate(-1%, 3%); } }
+
+/* stencil / spray headline */
+.head { font-family: var(--head); font-weight: 400; letter-spacing: .02em; line-height: .9; text-transform: uppercase; }
+.rough { filter: url(#rough); }
+.spray { text-shadow: 0 0 .06em rgba(244,239,230,.55), 0 0 .3em rgba(244,239,230,.12); }
+.eyebrow { font-family: var(--mono); text-transform: uppercase; letter-spacing: .22em; font-weight: 700; color: var(--muted); }
+.logo-w { filter: invert(1) brightness(.96) sepia(.08); }
+
+/* logo + show title lockup */
+.lockup { display: flex; align-items: center; gap: .55em; }
+.lockup img { height: 2.6em; width: auto; }
+.lockup .bar { width: 2px; align-self: stretch; background: var(--bone); opacity: .35; }
+.lockup .gh { font-family: var(--head); line-height: .82; font-size: 1.5em; text-transform: uppercase; }
+.lockup .gh .live { display: inline-block; background: var(--hot); color: var(--ink); padding: .04em .2em 0; transform: rotate(-3deg); margin-top: .08em; }
+
+/* Guitar Hero note gem: Clone Hero's own note sprites, tinted per fret like the game does. */
+.gem {
+  display: inline-block; width: 2em; height: 1em; vertical-align: -0.2em; position: relative;
+  background-image: url("gh/note0.png"), url("gh/note2.png");
+  background-size: 100% 100%; background-repeat: no-repeat;
+  background-color: var(--c); background-blend-mode: normal, multiply;
+  -webkit-mask-image: url("gh/note2.png"), url("gh/note0.png"); -webkit-mask-size: 100% 100%; -webkit-mask-repeat: no-repeat;
+  mask-image: url("gh/note2.png"), url("gh/note0.png"); mask-size: 100% 100%; mask-repeat: no-repeat;
+  filter: drop-shadow(0 0 .25em color-mix(in srgb, var(--c) 45%, transparent));
+}
+.gem.g { --c: var(--fret-green); } .gem.r { --c: var(--fret-red); } .gem.y { --c: var(--fret-yellow); }
+.gem.b { --c: var(--fret-blue); } .gem.o { --c: var(--fret-orange); }
+.fretbar { display: flex; height: 4px; } .fretbar i { flex: 1; }
+.fretbar i:nth-child(1) { background: var(--fret-green); } .fretbar i:nth-child(2) { background: var(--fret-red); }
+.fretbar i:nth-child(3) { background: var(--fret-yellow); } .fretbar i:nth-child(4) { background: var(--fret-blue); }
+.fretbar i:nth-child(5) { background: var(--fret-orange); }
+.stars { color: var(--fret-yellow); letter-spacing: .05em; }

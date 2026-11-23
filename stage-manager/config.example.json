@@ -1,0 +1,38 @@
+{
+  "port": 8765,
+  "admin_pin": "",
+  "songs_dir": "../sample-data/songs",
+  "scoredata_path": "~/Library/Application Support/com.srylain.CloneHero/scoredata.bin",
+  "game_app_name": "Clone Hero",
+  "instagram": "your_handle",
+  "spotify_url": "",
+  "show_name": "Guitar Hero Live",
+  "tunnel": false,
+  "open_display": true,
+  "max_queue": 40,
+  "results_seconds": 15,
+  "green_button": 0,
+  "red_button": 1,
+  "gameplay_bg": {
+    "enabled": false,
+    "template": "brand/gameplay-template.png",
+    "output": "~/Clone Hero/Custom/Image Backgrounds/SIGN UPS-2.png",
+    "qr": {
+      "x": 1400,
+      "y": 360,
+      "size": 336
+    }
+  },
+  "launch_game": false,
+  "driver": "chrome",
+  "audience_difficulty": "easy",
+  "encore_song": "",
+  "game_app_path": "",
+  "autoload": {
+    "enabled": false,
+    "steps": [
+      "activate",
+      "wait 1.0"
+    ]
+  }
+}

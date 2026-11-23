@@ -1,0 +1,22 @@
+# local settings (holds the admin PIN) and everything the server writes at run time
+stage-manager/config.json
+stage-manager/data/
+*.log
+
+# build output
+bin/
+obj/
+__pycache__/
+*.pyc
+*.dll
+
+# things you supply yourself (see README): game art, fonts, logo, vendored QR library, media
+stage-manager/static/gh/
+stage-manager/static/fonts/
+stage-manager/static/vendor/
+stage-manager/static/*.png
+stage-manager/brand/
+*.mp4
+*.bin
+
+.DS_Store

@@ -1,0 +1,80 @@
+/* In-game UI layer only (?layer=ui), kept out of display.html so UI tweaks don't force a re-render of the
+   background video (server.py fingerprints display.html for that). */
+/* In-game UI is drawn as two still poses that the mod crossfades at 60 fps: "rest" (the whole UI, on-air dot dim,
+   no green glow) and "peak" (only the accents: dot lit, green "Press to rock" glowing). */
+body.layer-ui .upnext .eyebrow .dot { animation: none !important; opacity: .25; }
+body.layer-ui .start .press { animation: none !important; }
+body.layer-ui.pose-peak .upnext .eyebrow .dot { opacity: 1; }
+body.layer-ui.pose-peak .start .press { filter: url(#rough) drop-shadow(0 0 1.2cqw rgba(43,217,107,.6)); }
+body.layer-ui.pose-peak .stage * { visibility: hidden !important; }
+body.layer-ui.pose-peak .upnext .eyebrow .dot, body.layer-ui.pose-peak .start .press,
+body.layer-ui.pose-peak .start .press * { visibility: visible !important; }
+
+/* gameplay background build: no highway (Clone Hero draws its own during songs) */
+.nohwy .hwy-wrap { display: none !important; }
+
+/* Difficulty fits inside the existing start card without changing the background video design. */
+.start .who { font-size: min(11cqw, 10cqh); margin: .3cqw 0 .5cqw; }
+.start .howto { margin-top: 1.1cqw; }
+.start .show { padding: .6cqw 1.2cqw; }
+.start .press { margin-top: .8cqw; font-size: 3.5cqw; }
+.start .press .gem { font-size: 3.4cqw; }
+.start .difficulty { display: flex; justify-content: center; align-items: center; gap: .6cqw; margin: .7cqw auto 0; font-size: 1cqw; }
+.start .difficulty .level { border: 1px solid var(--line); color: var(--muted); background: rgba(244,239,230,.04); padding: .4cqw .7cqw; font: 700 1cqw var(--mono); }
+.start .difficulty .level.selected { color: var(--ink); border-color: var(--fret-yellow); background: var(--fret-yellow); }
+.start .difficulty .level.unavailable { opacity: .25; }
+.start .difficulty-help { margin: .3cqw 0 0; color: var(--muted); font-size: .85cqw; }
+.start .nope { margin-top: .35cqw; }
+
+/* End-of-night thank-you screen (display-ui.js; server showFinished) */
+.stage.finished #upnext, .stage.finished #sticker, .stage.finished #legend, .stage.finished #last, .stage.finished #hint { display: none !important; }
+#thanks .thanks-msg { left: 3.6%; top: 31%; width: 27%; }
+#thanks .thanks-msg .eyebrow { font-size: 1.15cqw; color: var(--fret-yellow); }
+#thanks .thanks-msg .big { font-size: 6cqw; margin: .9cqw 0 1.2cqw; color: var(--bone); }
+#thanks .thanks-msg .next { font-family: var(--mono); font-size: 1.2cqw; font-weight: 700; color: var(--bone); letter-spacing: .1em; text-transform: uppercase; }
+#thanks .follow h2 { font-size: 3.2cqw; line-height: .9; }
+.stage.finished .board .tease { display: none !important; }  /* the encore has been played */
+
+/* Browsing the line from the stage (strum up/down): the highlighted person is shown big; the chips show where they
+   sit in the line. */
+.ondeck .chip em { font-style: normal; font-family: var(--mono); font-size: .8cqw; color: var(--muted); margin-right: .45cqw; }
+.upnext.picked .eyebrow { color: var(--fret-yellow); }
+.stage .legend { gap: 1cqw; }  /* three controls must end before the highway's left rail */
+.legend .strum { font-size: .9cqw; color: var(--bone); margin-right: .35cqw; letter-spacing: -.1em; }
+
+/* Live capture pages: the "Big hand for..." shout-out depends on the page's own history; never on the in-game screen */
+.live-capture #last { display: none !important; }
+
+/* Attract mode (empty line): open songs as a cover grid under "Ready to rock?" */
+#attract { margin-top: 1.6cqw; width: 20cqw; }
+#attract .lab { font-size: .95cqw; color: var(--fret-yellow); margin-bottom: .7cqw; }
+#attract .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6cqw; }
+#attract .tile { position: relative; }
+#attract .tile img, #attract .tile .ph { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #222; box-shadow: 0 .4cqw 1.2cqw rgba(0,0,0,.55); }
+#attract .tile b { display: block; margin-top: .35cqw; font: 400 .95cqw/1 var(--head); letter-spacing: .03em; color: var(--bone); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#attract .more { margin-top: .6cqw; font-size: .8cqw; color: var(--muted); }
+
+/* Results card (after a show song) */
+.stage.resulting #lobby, .stage.resulting #start, .stage.resulting #hint { display: none !important; }
+.results { inset: 0; display: grid; place-items: center; background: rgba(8,8,10,.8); }
+.results .card { position: relative; width: 80%; text-align: center; }
+.results .eyebrow { font-size: 1.3cqw; color: var(--bone); }
+.results .eyebrow.gold, .results .rank.gold { color: var(--fret-yellow); }
+.results .who { margin: .5cqw 0 .6cqw; word-break: normal; overflow-wrap: break-word; }
+.results .what { font-size: 1.6cqw; color: var(--bone); }
+.results .what small { color: var(--muted); }
+.results .score { font-size: 9cqw; line-height: .9; margin-top: 1.6cqw; color: var(--bone); text-shadow: 0 0 2cqw rgba(255,214,10,.25); }
+.results .pts { font: 700 1.1cqw var(--mono); letter-spacing: .3em; text-transform: uppercase; color: var(--muted); }
+.results .bigstars { display: flex; justify-content: center; gap: .5cqw; margin-top: 1.2cqw; }
+.results .bigstars i { width: 3.2cqw; height: 3.2cqw; background: linear-gradient(#fff1a8, #ffc21a 55%, #e08a00);
+  -webkit-mask: url("/static/gh/star.png") center / contain no-repeat; mask: url("/static/gh/star.png") center / contain no-repeat;
+  filter: drop-shadow(0 0 .6cqw rgba(255,190,40,.6)); }
+.results .rank { display: table; margin: 1.3cqw auto 0; padding: .5cqw 1.2cqw .4cqw; border: 1px solid var(--line); font: 700 1.3cqw var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--bone); }
+.results .rank.gold { border-color: var(--fret-yellow); }
+.results .tally { margin-top: 2cqw; font: 700 1.4cqw var(--mono); color: var(--muted); letter-spacing: .1em; }
+.results .next { display: flex; width: fit-content; align-items: baseline; gap: 1cqw; margin: 2.4cqw auto 0; padding: .8cqw 1.6cqw; background: rgba(0,0,0,.55); border-left: .4cqw solid var(--fret-green); }
+.results .next .eyebrow { font-size: 1cqw; color: var(--fret-green); }
+.results .next b { font-weight: 400; font-size: 2.6cqw; letter-spacing: .03em; color: var(--bone); }
+.results .next .go { font-size: 1cqw; color: var(--muted); display: inline-flex; gap: .4cqw; align-items: center; }
+.results .next .gem { font-size: 1.2cqw; }
+.start .difficulty .level.lefty { background: var(--fret-blue); border-color: var(--fret-blue); color: #fff; margin-right: .6cqw; }
