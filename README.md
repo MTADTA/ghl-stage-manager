@@ -1,5 +1,7 @@
 # ghl-stage-manager
 
+[![tests](https://github.com/MTADTA/ghl-stage-manager/actions/workflows/tests.yml/badge.svg)](https://github.com/MTADTA/ghl-stage-manager/actions/workflows/tests.yml)
+
 The software that runs my live show where the audience plays a rhythm game against my band. People in the room scan a
 QR code, pick a song on their phone and join a line. When their name comes up they take the guitar controller on
 stage and play the song in Clone Hero while the band plays it for real. This repository is the part I built around the
@@ -33,6 +35,11 @@ code are in this repository.
   Cloudflare quick tunnel so phones on cellular can reach it, restarts that tunnel if it drops, and moves to another
   port if something else is answering on its own.
 - **Browser pages** (`stage-manager/static/`): the phone sign-up page, the phone control panel, and the stage screen.
+- **Game-driven lights** (`GameLights` in `server.py`): the game reports what's happening in the song over UDP, and
+  the server turns it into lighting cues. In the room, momentary hits on the band's MaestroDMX controller over OSC,
+  on top of the band's own show: a blinder for Star Power, a strobe for a new #1, and one dial (subtle, show, big)
+  for how often the room reacts. On the guitar, its LEDs follow the song. "Rehearse the lights" plays every moment
+  before doors, and a missing controller or guitar never touches the game.
 - **Small Swift tools** (`stage-manager/tools/`): encode and check the looping stage videos, drive the guitar's LEDs.
 - **Launchers** (the three `.command` files): how I start the show, the Chrome backup mode and practice on the show Mac.
 - **Tests and benchmarks** (`tests/`, `bench/`).
@@ -93,7 +100,8 @@ for t in tests/check_*.py; do /usr/bin/python3 "$t"; done
 ```
 
 All 65 passed in this tree on Python 3.9.6 on the day of the commit. They cover the queue and scoring rules, the
-phone-first flow, the lighting cues, the port fallback and the tunnel restart. There is no CI. The scripts in `bench/`
+phone-first flow, the lighting cues, the port fallback and the tunnel restart. GitHub Actions runs all five suites on
+every push (macOS, Python 3.12). The scripts in `bench/`
 are the timing checks from the performance pass; they need the rendered stage videos from my show Mac, so they are a
 record and do not run from this tree.
 
